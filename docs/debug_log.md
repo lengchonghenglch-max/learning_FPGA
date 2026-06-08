@@ -50,3 +50,17 @@
 - 原因分析：当前 ModelSim 版本较老，对 `assign` 左值类型要求更严格；同时默认优化模式不会保留足够的层级可见性，导致 `add wave` 找不到对象。
 - 解决方法：建立 `docs/toolchain_memory.md`，固定记录本机规则：`assign` 左边检查 `wire/reg` 类型、`.do` 脚本统一使用 `vsim -voptargs=+acc`、所有脚本从 `sim/` 目录执行。
 - 验证结果：`rxuart.v` 已修正 `break_condition` 类型，`uart_rx_wave.do` 和 `linetest_wave.do` 已加入 `+acc`，后续仿真将按这份规则执行。
+
+### [2026-06-08] UART RX 波形截图已经补齐
+- 问题描述：把 `rxuart` 的理论分析落到实际波形图上，确认“毛刺过滤”和“中心采样”不是停留在代码阅读阶段。
+- 现象：已补 3 张截图，分别覆盖短毛刺、有效起始位后的中心采样，以及字节完成后的 `o_wr` 输出阶段。
+- 原因分析：单看控制台打印只能证明收到了字节，不能证明它是如何判定起始位、如何选取采样时刻的。
+- 解决方法：按 `uart_rx_false_start.png`、`uart_rx_center_sampling.png`、`uart_rx_output_strobe.png` 三个阶段整理截图，并与 testbench 日志交叉验证。
+- 验证结果：Icarus 仿真打印出了 `RX byte = 0x55` 和 `RX byte = 0xa6`；配合截图可确认短毛刺未触发接收，真正的字节只在起始位确认后按位中心被采样。
+
+### [2026-06-08] linetest 回显链路已通过仿真日志验证
+- 问题描述：需要确认 `linetest` 是否真的是“先缓存一整行，再按顺序发送”，而不是误以为发送逻辑卡死。
+- 现象：仿真日志显示 `DUT RX` 依次收到了 `0x41`、`0x42`、`0x43`、`0x0d`，随后 `DUT TX` 和 `Echo byte` 又按同样顺序输出。
+- 原因分析：如果只盯着较短时间窗口里的波形，很容易因为 `txuart` 默认参数带来的启动等待而误判为“没有回显”。
+- 解决方法：延长仿真运行时间，并同时打印 `dut.rx_stb`、`dut.tx_stb` 与外部监视器 `mon_wr` 的结果。
+- 验证结果：日志中已经出现 `DUT TX byte = 0x41/0x42/0x43/0x0d` 与对应的 `Echo byte = 0x41/0x42/0x43/0x0d`，确认 `linetest` 的整行缓存回显链路成立。

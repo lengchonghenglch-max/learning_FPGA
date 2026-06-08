@@ -45,10 +45,12 @@ iverilog -g2012 -DVERILATOR -o sim\linetest_wave_tb.out rtl\rxuart.v rtl\txuart.
 vvp sim\linetest_wave_tb.out
 ```
 
-## Current Focus
+## Current Status
 
-1. `uart_rx_wave_tb.v`: verify that a short glitch does not trigger reception.
-2. `linetest_wave_tb.v`: verify that echo starts only after carriage return.
+1. `uart_rx_wave_tb.v`: verified that a short glitch does not trigger reception.
+2. `uart_rx_wave_tb.v`: verified center sampling and byte-complete `o_wr` output with screenshots in `../waveform/`.
+3. `linetest_wave_tb.v`: verified that echo starts only after carriage return, based on local simulation logs.
+4. `linetest_wave_tb.v`: waveform screenshots are still pending.
 
 ## This Machine's Special Constraints
 

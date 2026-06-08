@@ -3,4 +3,6 @@ sim/work/
 sim/transcript
 sim/vsim.wlf
 sim/modelsim.ini
+sim/wlf*
+sim/tcl_stacktrace.txt
 waveform/*.wlf
