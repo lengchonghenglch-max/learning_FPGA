@@ -1,0 +1,6 @@
+sim/*.out
+sim/work/
+sim/transcript
+sim/vsim.wlf
+sim/modelsim.ini
+waveform/*.wlf
