@@ -10,7 +10,9 @@
    Open the `rxuart` waveform in ModelSim.
 4. `linetest_wave.do`
    Open the `linetest` waveform in ModelSim.
-5. `../docs/toolchain_memory.md`
+5. `render_linetest_waveforms.py`
+   Render `linetest` screenshots from `linetest_wave.vcd` without manual GUI capture.
+6. `../docs/toolchain_memory.md`
    Persistent note for this machine's ModelSim 10.4 compatibility rules.
 
 ## ModelSim Usage
@@ -45,25 +47,44 @@ iverilog -g2012 -DVERILATOR -o sim\linetest_wave_tb.out rtl\rxuart.v rtl\txuart.
 vvp sim\linetest_wave_tb.out
 ```
 
+## Auto-Render linetest Screenshots
+
+The current reproducible flow is:
+
+1. Use ModelSim to export `sim/linetest_wave.vcd` with internal DUT signals.
+2. Run:
+
+```powershell
+python sim\render_linetest_waveforms.py
+```
+
+This generates:
+
+- `../waveform/linetest_rx_stage.png`
+- `../waveform/linetest_lineend_trigger.png`
+- `../waveform/linetest_tx_stage.png`
+
 ## Current Status
 
 1. `uart_rx_wave_tb.v`: verified that a short glitch does not trigger reception.
 2. `uart_rx_wave_tb.v`: verified center sampling and byte-complete `o_wr` output with screenshots in `../waveform/`.
 3. `linetest_wave_tb.v`: verified that echo starts only after carriage return, based on local simulation logs.
-4. `linetest_wave_tb.v`: waveform screenshots are still pending.
+4. `linetest_wave_tb.v`: waveform screenshots have been generated and stored in `../waveform/`.
+5. `linetest.v`: ModelSim 10.4 requires explicit net types on ANSI-style ports, so `i_uart_rx` is now declared as `input wire`.
 
 ## This Machine's Special Constraints
 
 This PC uses `ModelSim SE-64 10.4`. The following rules are mandatory:
 
 1. If a signal is driven by `assign`, the left-hand signal must be `wire`, not `reg`.
-2. Waveform scripts must use:
+2. With ``default_nettype none`` enabled, module ports should declare `wire` explicitly.
+3. Waveform scripts must use:
 
 ```tcl
 vsim -voptargs=+acc work.top_name
 ```
 
-3. Do not assume `add wave sim:/top/*` will always work. Prefer explicit signal names.
+4. Do not assume `add wave sim:/top/*` will always work. Prefer explicit signal names.
 
 ## Extra Note for linetest
 

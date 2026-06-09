@@ -29,6 +29,23 @@ wire [27:0] break_condition;
 assign break_condition = {r_setup[23:0], 4'h0};
 ```
 
+### 1b. ANSI-style module ports should also declare the net type explicitly
+
+On this ModelSim version, with ``default_nettype none`` enabled, declarations like:
+
+```verilog
+input i_uart_rx;
+```
+
+may fail to compile. Prefer:
+
+```verilog
+input wire i_uart_rx;
+output wire o_uart_tx;
+```
+
+This matters for older source files such as `linetest.v`, even if other simulators accept the shorter form.
+
 ### 2. Always use `+acc` in `.do` scripts
 
 To make internal signals visible to `add wave`, use:

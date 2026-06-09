@@ -64,3 +64,17 @@
 - 原因分析：如果只盯着较短时间窗口里的波形，很容易因为 `txuart` 默认参数带来的启动等待而误判为“没有回显”。
 - 解决方法：延长仿真运行时间，并同时打印 `dut.rx_stb`、`dut.tx_stb` 与外部监视器 `mon_wr` 的结果。
 - 验证结果：日志中已经出现 `DUT TX byte = 0x41/0x42/0x43/0x0d` 与对应的 `Echo byte = 0x41/0x42/0x43/0x0d`，确认 `linetest` 的整行缓存回显链路成立。
+
+### [2026-06-09] ModelSim 10.4 下 linetest 端口声明还需要显式 `wire`
+- 问题描述：准备把 `linetest` 的内部信号导出到 VCD 并自动渲染截图时，ModelSim 10.4 编译 `linetest.v` 失败。
+- 现象：`vlog` 报错 `Net type of 'i_uart_rx' must be explicitly declared.`，而同样的源码在 Icarus Verilog 下可以通过。
+- 原因分析：当前机器的 ModelSim 10.4 在 ``default_nettype none`` 条件下，对 ANSI 风格端口声明更严格，`input i_uart_rx` 这种省略写法不会被接受。
+- 解决方法：将 `linetest.v` 中的端口声明改为 `input wire i_uart_rx`，并把这条规则补充到 `docs/toolchain_memory.md`。
+- 验证结果：修正后 `vlog +define+VERILATOR ../rtl/rxuart.v ../rtl/txuart.v ../rtl/linetest.v ../sim/linetest_wave_tb.v` 已可在 ModelSim 10.4 下通过编译。
+
+### [2026-06-09] linetest 波形截图已经补齐
+- 问题描述：需要把 `linetest` 的“整行缓存后回显”从日志结论升级为可视化证据链。
+- 现象：之前只有 `DUT RX` / `DUT TX` / `Echo byte` 日志，没有 `head`、`tail`、`lineend`、`run_tx` 的固定波形截图。
+- 原因分析：没有截图时，很难直观看到“回车触发边界锁存”和“`tail` 只在握手点前进”这两个关键行为。
+- 解决方法：先用 ModelSim 导出 `sim/linetest_wave.vcd`，再用 `sim/render_linetest_waveforms.py` 自动生成 `linetest_rx_stage.png`、`linetest_lineend_trigger.png`、`linetest_tx_stage.png`。
+- 验证结果：三张截图已经生成；其中 `151.715 us` 附近确认了 `lineend=4` 与 `run_tx=1`，`151.735/154.935/158.135/161.335 us` 依次确认了 `tail` 的发送握手推进时刻。

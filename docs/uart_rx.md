@@ -234,6 +234,32 @@ rxuart 是如何证明自己在“位中心”采样，而不是乱采样的？
 2. `waveform/uart_rx_center_sampling.png`
 3. `waveform/uart_rx_output_strobe.png`
 
+### 4.6 GitHub 展示版波形图集
+
+#### 图 1：短毛刺不会触发接收
+
+<p align="center">
+  <img src="../waveform/uart_rx_false_start.png" alt="uart_rx false start waveform" width="100%">
+</p>
+
+> 观察点：`i_uart_rx` 虽然出现短低脉冲，但 `half_baud_time` 没有形成有效判定，状态机不会误进入正式接收流程。
+
+#### 图 2：有效起始位后的中心采样
+
+<p align="center">
+  <img src="../waveform/uart_rx_center_sampling.png" alt="uart_rx center sampling waveform" width="100%">
+</p>
+
+> 观察点：起始位先在中点被确认，随后状态机按位中心推进采样，这证明 `rxuart` 不是沿边直接取样。
+
+#### 图 3：字节完成后的 `o_wr` 输出
+
+<p align="center">
+  <img src="../waveform/uart_rx_output_strobe.png" alt="uart_rx output strobe waveform" width="100%">
+</p>
+
+> 观察点：`o_wr` 只在停止位检查完成后拉高 1 拍，对应一个完整字节已经装配完成。
+
 ## 5. Debug / 遇到的问题
 
 ### 问题 1
@@ -275,8 +301,8 @@ rxuart 是如何证明自己在“位中心”采样，而不是乱采样的？
 ### 我还需要补什么
 
 1. 后续可以再补一张更细的 `state` 编码对照图。
-2. 可以把三张截图直接嵌进 GitHub 页面，减少跳转成本。
-3. 如果继续深挖，可补一次“不同 `i_setup` 下中心采样窗口变化”的对比实验。
+2. 如果继续深挖，可补一次“不同 `i_setup` 下中心采样窗口变化”的对比实验。
+3. 可以进一步把 `state`、`baud_counter` 做成更聚焦的局部放大图。
 
 ### 检查题
 

@@ -70,7 +70,7 @@ module	linetest(
 `ifndef	OPT_STANDALONE
 		input	wire	[30:0]	i_setup,
 `endif
-		input		i_uart_rx,
+		input	wire	i_uart_rx,
 		output	wire	o_uart_tx
 		// }}}
 	);

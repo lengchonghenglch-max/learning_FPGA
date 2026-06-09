@@ -217,6 +217,45 @@ tail 仅在 !tx_busy 时前进，证明 linetest 采用“整行缓存后回显�
 2. `waveform/linetest_lineend_trigger.png`
 3. `waveform/linetest_tx_stage.png`
 
+### 4.6 GitHub 展示版波形图集
+
+#### 图 1：回车到达前，系统只接收不发送
+
+<p align="center">
+  <img src="../waveform/linetest_rx_stage.png" alt="linetest rx stage waveform" width="100%">
+</p>
+
+> 观察点：`dut.rx_stb` 每确认一个字节，`dut.head` 就前进一步；在回车到达前，`dut.run_tx` 始终保持为 `0`。
+
+#### 图 2：回车触发 `lineend` 锁存和 `run_tx` 拉高
+
+<p align="center">
+  <img src="../waveform/linetest_lineend_trigger.png" alt="linetest lineend trigger waveform" width="100%">
+</p>
+
+> 观察点：回车 `0x0d` 到达时，`dut.head` 从 `3` 变 `4`，`dut.lineend` 同步锁存为 `4`，`dut.run_tx` 由 `0` 变 `1`，随后 `dut.tx_stb` 开始请求发送。
+
+#### 图 3：发送阶段只在握手点推进 `tail`
+
+<p align="center">
+  <img src="../waveform/linetest_tx_stage.png" alt="linetest tx stage waveform" width="100%">
+</p>
+
+> 观察点：`dut.tx_stb` 持续请求发送，但 `dut.tail` 只会在 `!dut.tx_busy` 的握手时刻推进，严格按 `A/B/C/\r` 顺序吐出整行数据。
+
+### 4.7 本次实际截图对应的关键时间点
+
+1. `linetest_rx_stage.png`
+   覆盖 `140.500 us ~ 149.200 us`，能看到 `A`、`B`、`C` 进入缓存前两拍的接收过程。
+2. `151.715 us`
+   `dut.rx_stb` 对回车 `0x0d` 拉高，`dut.head` 由 `3` 变 `4`，`dut.lineend` 同时锁存为 `4`，`dut.run_tx` 由 `0` 变 `1`。
+3. `151.725 us`
+   `dut.tx_stb` 开始请求发送，说明系统已经从“接收积累”切换到“发送整行”。
+4. `151.735 us / 154.935 us / 158.135 us / 161.335 us`
+   `dut.tail` 分别推进到 `1/2/3/4`，对应 `A/B/C/\r` 被发送器依次收走。
+5. `linetest_tx_stage.png`
+   覆盖 `151.700 us ~ 161.500 us`，重点证明 `tail` 只在 `!tx_busy` 的握手点前进，而不是每拍自增。
+
 ## 5. Debug / 遇到的问题
 
 ### 问题 1
@@ -250,7 +289,10 @@ tail 仅在 !tx_busy 时前进，证明 linetest 采用“整行缓存后回显�
 1. 本地仿真日志已经确认 `DUT RX` 依次收到 `0x41`、`0x42`、`0x43`、`0x0d`，对应 `A/B/C/\r`。
 2. 随后 `DUT TX` 依次打印 `0x41`、`0x42`、`0x43`、`0x0d`，说明发送边界在收到回车后被锁定。
 3. 监视器 `monitor_rx` 同步收到 `Echo byte = 0x41/0x42/0x43/0x0d`，说明回显链路完整闭环。
-4. 这证明 `linetest` 的行为是“先缓存一行，再按顺序发送”，而不是收到单字节立即回显。
+4. `waveform/linetest_rx_stage.png` 已证明：在回车到达前，`dut.head` 递增而 `dut.run_tx=0`，系统仍处于纯接收积累阶段。
+5. `waveform/linetest_lineend_trigger.png` 已证明：回车到达的同一拍附近，`dut.lineend` 被锁存为 `4`，`dut.run_tx` 拉高，`dut.tx_stb` 紧接着发起发送请求。
+6. `waveform/linetest_tx_stage.png` 已证明：`dut.tail` 只会在 `!dut.tx_busy` 的发送握手点前进，整行数据按顺序被取出。
+7. 这证明 `linetest` 的行为是“先缓存一行，再按顺序发送”，而不是收到单字节立即回显。
 
 ## 7. 今日反思
 
@@ -262,9 +304,9 @@ tail 仅在 !tx_busy 时前进，证明 linetest 采用“整行缓存后回显�
 
 ### 我还需要补什么
 
-1. 还需要补 `linetest` 的 3 张正式波形截图。
-2. 需要把 `run_tx` 拉高、`lineend` 锁存、`tail` 前进这三个时刻截图固定下来。
-3. 后续可补一条“如果 `tail` 提前移动会造成什么错误”的 Debug 日志。
+1. 可以补一条“如果 `tail` 提前移动会造成什么错误”的反例日志。
+2. 可以把当前 VCD 渲染脚本复用到 FIFO 或更上层 UART 系统接口模块。
+3. 下一步更适合进入 FIFO、Wishbone 或 Modbus 之一，而不是继续停留在 `linetest` 基础行为上。
 
 ### 检查题
 
